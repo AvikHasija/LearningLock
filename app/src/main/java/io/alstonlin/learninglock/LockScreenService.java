@@ -58,12 +58,10 @@ public class LockScreenService extends Service {
     private Button btnEdit;
     private ArrayList<Double> timeAtClick = new ArrayList<>();
     private double[] delayTimes; // To store for startActivityForResult
-    private String[] weather;
 
     private final LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            weather = DAO.getWeather(location.getLongitude(), location.getLatitude());
         }
 
         @Override
@@ -85,29 +83,6 @@ public class LockScreenService extends Service {
         return null;
     }
 
-    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
-        ImageView bmImage;
-
-        public DownloadImageTask(ImageView bmImage) {
-            this.bmImage = bmImage;
-        }
-
-        protected Bitmap doInBackground(String... urls) {
-            String urldisplay = urls[0];
-            Bitmap mIcon11 = null;
-            try {
-                InputStream in = new java.net.URL(urldisplay).openStream();
-                mIcon11 = BitmapFactory.decodeStream(in);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return mIcon11;
-        }
-
-        protected void onPostExecute(Bitmap result) {
-            bmImage.setImageBitmap(result);
-        }
-    }
 
     @Override
     public void onCreate() {
@@ -121,44 +96,9 @@ public class LockScreenService extends Service {
             lock();
             loadPattern();
             setupPatternListener();
-            setupWeather();
-            final TextView dateText = (TextView) container.findViewById(R.id.date);
-
         }
     }
 
-    private void setupWeather() {
-        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        final Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        if (location != null){
-            AsyncTask<Void, Void, String[]> task = new AsyncTask<Void, Void, String[]>() {
-                @Override
-                protected String[] doInBackground(Void... params) {
-                    return DAO.getWeather(location.getLongitude(), location.getLatitude());
-                }
-
-                @Override
-                protected void onPostExecute(String[] val){
-                    super.onPostExecute(val);
-                    try {
-                        weather = val;
-                        ImageView imageView = (ImageView) container.findViewById(R.id.weather_img);
-                        TextView tempView = (TextView) container.findViewById(R.id.temp);
-                        new DownloadImageTask(imageView).execute(weather[0]);
-                        tempView.setText(weather[1] + "C");
-                    } catch (Throwable t){
-                        t.printStackTrace();
-                    }
-                }
-            };
-            task.execute();
-        }else {
-            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
-        }
-    }
     /**
      * Loads pattern from file.
      */
@@ -261,7 +201,7 @@ public class LockScreenService extends Service {
                 }
                 // Compares
                 if (pin.equals(actual)) {
-                    //LockScreenML.getInstance().addEntry(delayTimes, true, true);
+                    LockScreenML.getInstance().addEntry(delayTimes, true, true);
                     unlock();
                 } else {
                     Toast.makeText(this, "Wrong PIN!", Toast.LENGTH_LONG).show();
